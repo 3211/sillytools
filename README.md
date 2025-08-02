@@ -1,0 +1,2 @@
+# sillytools
+Tools for SillyTavern
