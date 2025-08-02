@@ -1,8 +1,10 @@
 // SillyTools - A suite of tools by 7th7andwich & Gemini
 
 (function () {
-    // This script is "self-aware". It automatically finds its own path
-    // to make sure it works no matter how or where SillyTavern installs it.
+    // --- IMMEDIATE EXECUTION ---
+    // We MUST capture the script's URL immediately, before any delays or events.
+    // If we don't, document.currentScript will become null.
+    const launcherUrl = document.currentScript.src;
 
     // --- CONFIGURATION ---
     const toolScripts = [
@@ -12,17 +14,12 @@
 
     // --- SCRIPT LOADER ---
     function loadScripts() {
-        // 1. Find the URL of this currently running script.
-        const launcherUrl = document.currentScript.src;
-        
-        // 2. Derive the base path of the extension from that URL.
-        // It strips "Launcher.js" from the end to get the folder path.
+        // 1. Derive the base path from the URL we captured earlier.
         const baseUrl = launcherUrl.substring(0, launcherUrl.lastIndexOf('/') + 1);
-
         const head = document.head;
 
         toolScripts.forEach(scriptPath => {
-            // 3. Build the full, correct URL to the tool's script.
+            // 2. Build the full, correct URL to the tool's script.
             const scriptUrl = baseUrl + scriptPath;
             const scriptName = scriptPath.split('/').pop();
 
@@ -41,7 +38,7 @@
     }
 
     // --- INITIALIZATION ---
-    // Wait for the UI to be ready before trying to load anything.
+    // Now we can safely wait for the DOM to be ready before calling our function.
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
         console.log('SillyTools: Launcher initialized.');
         loadScripts();
