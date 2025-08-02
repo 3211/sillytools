@@ -1,10 +1,11 @@
 {
     "display_name": "SillyTools",
     "name": "SillyTools",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "7th7andwich",
     "description": "A set of tools for SillyTavern.",
     "js": "Launcher.js",
     "css": "style.css",
-    "requires": []
+    "requires": [],
+    "loading_order": 100
 }
