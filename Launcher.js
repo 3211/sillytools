@@ -1,42 +1,55 @@
 // SillyTools - A suite of tools by 7th7andwich & Gemini
 
 (function () {
+    // This script is "self-aware". It automatically finds its own path
+    // to make sure it works no matter how or where SillyTavern installs it.
+
     // --- CONFIGURATION ---
-    // This array holds the paths to all the tool scripts you want to load.
-    // The path is relative to the SillyTools plugin folder.
     const toolScripts = [
         'app/CharacterNotes.js'
-        // 'app/AnotherTool.js', // Example of how to add more later
+        // 'app/AnotherTool.js', // Example for later
     ];
 
     // --- SCRIPT LOADER ---
-    // This function dynamically loads all the scripts listed in the array above.
     function loadScripts() {
-        // IMPORTANT: This name MUST EXACTLY match the name of your plugin's folder
-        // in the /public/extensions/ directory.
-        const pluginName = 'SillyTools'; 
+        // 1. Find the URL of this currently running script.
+        const launcherUrl = document.currentScript.src;
+        
+        // 2. Derive the base path of the extension from that URL.
+        // It strips "Launcher.js" from the end to get the folder path.
+        const baseUrl = launcherUrl.substring(0, launcherUrl.lastIndexOf('/') + 1);
+
         const head = document.head;
 
         toolScripts.forEach(scriptPath => {
-            const scriptUrl = `extensions/${pluginName}/${scriptPath}`;
+            // 3. Build the full, correct URL to the tool's script.
+            const scriptUrl = baseUrl + scriptPath;
+            const scriptName = scriptPath.split('/').pop();
 
-            // Check if the script is already loaded to prevent duplicates
             if (document.querySelector(`script[src="${scriptUrl}"]`)) {
-                console.log(`SillyTools: Script ${scriptPath} is already loaded.`);
+                console.log(`SillyTools: Script ${scriptName} is already loaded.`);
                 return;
             }
 
             const scriptElement = document.createElement('script');
             scriptElement.type = 'text/javascript';
             scriptElement.src = scriptUrl;
-            scriptElement.onload = () => console.log(`SillyTools: Successfully loaded ${scriptPath}`);
-            scriptElement.onerror = () => console.error(`SillyTools: Failed to load ${scriptPath}. Check folder name and script path.`);
+            scriptElement.onload = () => console.log(`SillyTools: Successfully loaded ${scriptName} from ${scriptUrl}`);
+            scriptElement.onerror = () => console.error(`SillyTools: CRITICAL - Failed to load ${scriptName}. URL was ${scriptUrl}`);
             head.appendChild(scriptElement);
         });
     }
 
     // --- INITIALIZATION ---
-    console.log('SillyTools: Launcher initialized.');
-    loadScripts();
+    // Wait for the UI to be ready before trying to load anything.
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        console.log('SillyTools: Launcher initialized.');
+        loadScripts();
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('SillyTools: Launcher initialized on DOMContentLoaded.');
+            loadScripts();
+        });
+    }
 
 })();
