@@ -13,7 +13,7 @@
     // --- SCRIPT LOADER ---
     // This function dynamically loads all the scripts listed in the array above.
     function loadScripts() {
-        const pluginName = 'GumpTools'; // Should match the folder name in /extensions/
+        const pluginName = 'sillytools'; // Should match the folder name in /extensions/
         const head = document.head;
 
         toolScripts.forEach(scriptPath => {
