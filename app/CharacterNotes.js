@@ -1,6 +1,4 @@
 (function () {
-    console.log('CNotes: [V19-DeletionLogic] Script file loaded.');
-
     // --- GLOBALS ---
     let characterNotesData = {};
     let currentCharacterId = null;
@@ -8,12 +6,14 @@
     let folderSelector, folderNameInput, noteSelector, noteTitleInput, noteContentTextarea;
     let isModalOpen = false;
     let currentFolderName = '##root##';
+    let isInitialized = false; // Prevents running initialization more than once
 
     // ----- DATA FUNCTIONS -----
     function loadNotes() {
         const context = SillyTavern.getContext();
-        const loadedData = context.extensionSettings['Character-Notes'];
-        if (loadedData) characterNotesData = loadedData;
+        // Use a default empty object if settings don't exist yet
+        const loadedData = context.extensionSettings['Character-Notes'] || {};
+        characterNotesData = loadedData;
 
         // One-time migration for any character data still in the old format
         Object.keys(characterNotesData).forEach(charId => {
@@ -167,13 +167,16 @@
             return;
         }
 
-        if (confirm(`Are you sure you want to delete the folder "${folderToDelete}" and all notes inside it?`)) {
-            delete characterNotesData[currentCharacterId][folderToDelete];
-            currentFolderName = '##root##';
-            saveNotes();
-            refreshFoldersUI();
-            SillyTavern.utility.showToast(`Folder "${folderToDelete}" deleted.`, "success");
-        }
+        // Use SillyTavern's built-in confirmation modal instead of the browser's `confirm()`
+        SillyTavern.utility.showConfirmDialog(`Are you sure you want to delete the folder "${folderToDelete}" and all notes inside it?`, (confirmed) => {
+            if (confirmed) {
+                delete characterNotesData[currentCharacterId][folderToDelete];
+                currentFolderName = '##root##';
+                saveNotes();
+                refreshFoldersUI();
+                SillyTavern.utility.showToast(`Folder "${folderToDelete}" deleted.`, "success");
+            }
+        });
     }
     
     function ensureOnScreen() {
@@ -230,45 +233,61 @@
         if(header){header.onmousedown=function(e){e.preventDefault();pos3=e.clientX;pos4=e.clientY;document.onmouseup=()=>{document.onmouseup=null;document.onmousemove=null;};document.onmousemove=(e)=>{e.preventDefault();pos1=pos3-e.clientX;pos2=pos4-e.clientY;pos3=e.clientX;pos4=e.clientY;modal.style.top=`${modal.offsetTop-pos2}px`;modal.style.left=`${modal.offsetLeft-pos1}px`;};};}
     }
 
-    // --- IMMEDIATE EXECUTION ---
-    try {
-        console.log('CNotes: Entering initialization block.');
-        const extensionsMenu = document.getElementById('extensionsMenu');
-        if (!extensionsMenu) throw new Error("#extensionsMenu not found in the DOM.");
+    // --- INITIALIZATION FUNCTION ---
+    // This function contains all the logic that needs to run when the extension starts.
+    function initialize() {
+        if (isInitialized) return; // Don't run twice
+        isInitialized = true;
 
-        const menuItem = document.createElement('div');
-        menuItem.classList.add('list-group-item', 'flex-container', 'flexGap5', 'interactable');
-        menuItem.innerHTML = `<i class="fa-solid fa-note-sticky"></i><span>Character Notes</span>`;
-        
-        menuItem.addEventListener('click', () => { (isModalOpen) ? closeModal() : openModal(); });
-        
-        extensionsMenu.appendChild(menuItem);
-        createModal();
-        loadNotes();
+        try {
+            console.log('CNotes: Initializing...');
+            const extensionsMenu = document.getElementById('extensionsMenu');
+            
+            const menuItem = document.createElement('div');
+            menuItem.classList.add('list-group-item', 'flex-container', 'flexGap5', 'interactable');
+            menuItem.innerHTML = `<i class="fa-solid fa-note-sticky"></i><span>Character Notes</span>`;
+            
+            menuItem.addEventListener('click', () => { (isModalOpen) ? closeModal() : openModal(); });
+            
+            extensionsMenu.appendChild(menuItem);
+            createModal();
+            loadNotes();
 
-        const eventSource = SillyTavern.getContext().eventSource;
+            const eventSource = SillyTavern.getContext().eventSource;
 
-        eventSource.on('chatLoaded', () => {
-            currentFolderName = '##root##';
-            refreshFoldersUI();
-        });
+            eventSource.on('chatLoaded', () => {
+                currentFolderName = '##root##';
+                if (isModalOpen) {
+                   refreshFoldersUI();
+                }
+            });
 
-        // MODIFIED: Listener for character deletion now contains the cleanup logic.
-        eventSource.on('characterDeleted', (data) => {
-            console.log('CNotes: "characterDeleted" event caught!');
-            // SillyTavern's character ID is the avatar filename. The event provides this.
-            const charId = data.id;
-            console.log(`CNotes: Deleting notes for character ID: ${charId}`);
-            if (charId && characterNotesData[charId]) {
-                
-                delete characterNotesData[charId];
-                saveNotes();
-                SillyTavern.utility.showToast(`Cleaned up notes for deleted character.`, "info");
-            }
-        });
+            eventSource.on('characterDeleted', (data) => {
+                const charId = data.id;
+                if (charId && characterNotesData[charId]) {
+                    delete characterNotesData[charId];
+                    saveNotes();
+                    SillyTavern.utility.showToast(`Cleaned up notes for deleted character.`, "info");
+                }
+            });
 
-        console.log('CNotes: Initialization complete.');
-    } catch (error) {
-        console.error('CNotes: A critical error occurred during initialization.', error);
+            console.log('CNotes: Initialization complete.');
+        } catch (error) {
+            console.error('CNotes: A critical error occurred during initialization.', error);
+        }
     }
+
+    // --- STARTUP ---
+    // This is the new, safer way to start the script.
+    // It waits until the necessary part of the UI (#extensionsMenu) exists.
+    const startupInterval = setInterval(() => {
+        const extensionsMenu = document.getElementById('extensionsMenu');
+        if (extensionsMenu) {
+            clearInterval(startupInterval); // Stop checking
+            initialize(); // Run the main code
+        }
+    }, 250); // Check every 250ms
+
 })();
+```
+After updating `app/CharacterNotes.js` with this code and doing a hard refresh, the race condition should be solved and the button should appear reliab
