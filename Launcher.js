@@ -6,7 +6,7 @@
     // To add a new tool, just add its script path to this list.
     // The path is relative to the GumpTools plugin folder.
     const toolScripts = [
-        'App/CharacterNotes.js'
+        'app/CharacterNotes.js'
         // 'App/AnotherTool.js', // Example of how to add more later
     ];
 
